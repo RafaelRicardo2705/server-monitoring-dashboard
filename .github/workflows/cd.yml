@@ -1,39 +1,20 @@
-# ============================================================================
-# CD WORKFLOW - Continuous Deployment
-# ============================================================================
-
 name: CD - Deploy to Production
 
 on:
-  push:
-    branches: 
+  workflow_run:
+    workflows: ["CI - Test & Lint"] # Pastikan nama ini sama persis dengan nama di dalam ci.yml
+    types:
+      - completed
+    branches:
       - main
-  workflow_dispatch:
 
 jobs:
   deploy:
-    name: Deploy with PM2
+    name: Deploy Application
     runs-on: self-hosted
-    needs: test    # <-- FIX: Nama job di ci.yml adalah "test", bukan "ci"
+    if: ${{ github.event.workflow_run.conclusion == 'success' }} # Pastikan deploy jalan HANYA JIKA test sukses
+    # HAPUS BARIS "needs: test" KARENA SUDAH TIDAK DIPAKAI LAGI
     
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
-      
-      - name: Deploy Application
-        run: |
-          echo "🚀 Starting deployment..."
-          cd /var/www/server-monitoring-dashboard || cd $GITHUB_WORKSPACE
-          git pull origin main
-          npm ci --production
-          pm2 restart dashboard || pm2 start src/server.js --name dashboard
-          pm2 save
-          echo "✅ Deployment successful!"
-          pm2 status
-      
-      - name: Health Check
-        run: |
-          echo "🏥 Health check..."
-          sleep 2
-          curl -f http://localhost:3000/api/status || (echo "❌ Failed!" && exit 1)
-          echo "✅ Health check passed!"
+# ... (lanjutkan step deploy kamu ke bawah)
