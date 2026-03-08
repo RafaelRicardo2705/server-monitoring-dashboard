@@ -1,71 +1,39 @@
 # ============================================================================
 # CD WORKFLOW - Continuous Deployment
 # ============================================================================
-# Purpose: Deploy application to production after CI passes
-# Trigger: Push to main OR manual trigger
-# Dependency: Requires CI job to succeed (needs: ci)
-# ============================================================================
 
 name: CD - Deploy to Production
 
 on:
-  # Trigger 1: Push ke main (setelah PR di-merge)
   push:
     branches: 
       - main
-  
-  # Trigger 2: Manual deploy dari GitHub UI
-  # Path: Actions → CD - Deploy to Production → Run workflow
   workflow_dispatch:
 
-# ============================================================================
-# JOBS
-# ============================================================================
 jobs:
-  # --------------------------------------------------------------------------
-  # Job: deploy
-  # Description: Deploy application using PM2 on self-hosted runner
-  # Dependency: Hanya jalan jika CI sukses
-  # --------------------------------------------------------------------------
   deploy:
     name: Deploy with PM2
-    runs-on: self-hosted      # VM Proxmox (sama dengan CI)
-    needs: ci                 # DEPENDENCY: Tunggu CI selesai & sukses
+    runs-on: self-hosted
+    needs: test    # <-- FIX: Nama job di ci.yml adalah "test", bukan "ci"
     
     steps:
-      # Step 1: Checkout latest code
       - name: Checkout Repository
         uses: actions/checkout@v4
       
-      # Step 2: Deploy application
-      # Semua command dijalankan di VM Proxmox (self-hosted runner)
       - name: Deploy Application
         run: |
-          echo "🚀 Starting deployment to Proxmox VM..."
-          
-          # Pindah ke folder aplikasi (production path)
-          # Fallback ke GITHUB_WORKSPACE jika belum ada
+          echo "🚀 Starting deployment..."
           cd /var/www/server-monitoring-dashboard || cd $GITHUB_WORKSPACE
-          
-          echo "📥 Pulling latest code from GitHub..."
           git pull origin main
-          
-          echo "📦 Installing production dependencies..."
           npm ci --production
-          
-          echo "🔄 Restarting application with PM2..."
           pm2 restart dashboard || pm2 start src/server.js --name dashboard
           pm2 save
-          
           echo "✅ Deployment successful!"
-          echo "📊 Current PM2 status:"
           pm2 status
       
-      # Step 3: Health check
-      # Verifikasi aplikasi benar-benar running
       - name: Health Check
         run: |
-          echo "🏥 Checking application health..."
-          sleep 2  # Tunggu aplikasi fully start
-          curl -f http://localhost:3000/api/status || (echo "❌ Health check failed!" && exit 1)
+          echo "🏥 Health check..."
+          sleep 2
+          curl -f http://localhost:3000/api/status || (echo "❌ Failed!" && exit 1)
           echo "✅ Health check passed!"
