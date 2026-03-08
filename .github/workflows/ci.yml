@@ -1,0 +1,70 @@
+# ============================================================================
+# CI WORKFLOW - Continuous Integration
+# ============================================================================
+# Purpose: Test, lint, and validate code on every push and pull request
+# Runner: Self-hosted (VM Proxmox) for on-premise execution
+# ============================================================================
+
+name: CI - Test & Lint
+
+on:
+  # Trigger 1: Push ke branch utama atau development
+  push:
+    branches: 
+      - main      # Production branch
+      - develop   # Integration branch (Git Flow pattern)
+  
+  # Trigger 2: Pull request ke main (gatekeeping)
+  pull_request:
+    branches: 
+      - main      # Hanya PR ke main yang perlu full CI
+
+# ============================================================================
+# JOBS
+# ============================================================================
+jobs:
+  # --------------------------------------------------------------------------
+  # Job: test
+  # Description: Run linter, tests, and generate coverage report
+  # --------------------------------------------------------------------------
+  test:
+    name: Run Tests & Lint
+    runs-on: self-hosted    # Gunakan runner di VM Proxmox
+    
+    steps:
+      # Step 1: Checkout repository
+      # Mengambil source code ke runner
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      # Step 2: Setup Node.js environment
+      # Versi 18 LTS, dengan caching npm untuk speed
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      # Step 3: Install dependencies
+      # npm ci: clean, deterministic, fast
+      - name: Install Dependencies
+        run: npm ci
+      
+      # Step 4: Run ESLint
+      # Cek code quality sebelum test (fail-fast)
+      - name: Run Linter
+        run: npm run lint
+      
+      # Step 5: Run Jest tests
+      # Unit test, integration test, coverage
+      - name: Run Tests
+        run: npm test
+      
+      # Step 6: Generate coverage report
+      # Upload untuk documentation dan audit
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 30
