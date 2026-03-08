@@ -1,13 +1,8 @@
 name: CD - Deploy to Production
 
 on:
-  # Memantau workflow CI, jalan otomatis kalau CI selesai dan sukses di branch main
-  workflow_run:
-    workflows: ["CI - Test & Lint"] # Pastikan nama ini sama persis dengan "name:" di file ci.yml kamu
-    types:
-      - completed
-    branches:
-      - main
+  push:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -15,8 +10,6 @@ jobs:
     name: Deploy with PM2
     runs-on: self-hosted
     
-    # Kunci Keamanan: Pastikan CI berstatus 'success' sebelum lanjut deploy
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     
     steps:
       - name: Checkout Repository
