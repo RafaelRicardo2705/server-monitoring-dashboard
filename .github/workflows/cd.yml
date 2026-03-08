@@ -14,13 +14,18 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-      
-      - name: Setup and Deploy
+
+      - name: Sync Files to Production and Restart
         run: |
-          echo "🚀 Deploying..."
-          pwd
-          ls -la
+          echo "🚀 Syncing new code to production directory..."
+          # Memindahkan kode baru dari Runner ke folder /var/www/
+          sudo rsync -av --exclude='.git' --exclude='node_modules' $GITHUB_WORKSPACE/ /var/www/server-monitoring-dashboard/
+          
+          echo "📦 Installing dependencies..."
+          cd /var/www/server-monitoring-dashboard
           npm ci --production
+          
+          echo "🔄 Restarting application..."
           pm2 restart dashboard || pm2 start src/server.js --name dashboard
           pm2 save
-          echo "✅ Done!"
+          echo "✅ Deployment totally complete!"
